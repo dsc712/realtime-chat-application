@@ -33,6 +33,29 @@ try {
         server.use( bodyParser.json() );
         server.use( bodyParser.urlencoded({ extended: true }));
 
+        const chatHistory = { messages: [] };
+
+        server.post('/message', ( req, res ) => {
+            try {
+                const { user = null, message = '', timestamp = +new Date } = req.body;
+                const sentimentScore = sentiment.analyze(message).score;
+
+                const chat = { user, message, timestamp, sentiment: sentimentScore };
+
+                chatHistory.messages.push(chat);
+                pusher.trigger('chat-room', 'new-message', { chat });
+
+            } catch( err ) {
+                res.status(500).send({ message: err.message })
+            }
+
+        });
+
+        server.post('/messages', (req, res ) => {
+            res.json({ ...chatHistory, status: 'success' });
+            res.send()
+        });
+
         server.get('*', (req, res) => {
             return handler(req, res);
         });
